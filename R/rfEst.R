@@ -128,8 +128,8 @@
 #'           
 #' 
 #' @export rf_est_FS
-rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
-                      sexSpec=F, trace=F, noFam=1, method = "EM", ...){
+rf_est_FS <- function(init_r=0.01, epsilon=0.001, alpha=NULL, depth_Ref, depth_Alt, OPGP,
+                      sexSpec=F, trace=F, noFam=1, method = "optim", ...){
   
   ## Do some checks
   if(!is.list(depth_Ref) | !is.list(depth_Alt) | !is.list(OPGP))
@@ -181,13 +181,6 @@ rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
     if(length(optim.arg) == 0)
       optim.arg <- list(maxit = 1000, reltol=1e-15)
     
-    ## Compute the K matrix for heterozygous genotypes
-    bcoef_mat <- Kab <- vector(mode="list", length=noFam)
-    for(fam in 1:noFam){
-      bcoef_mat[[fam]] <- choose(depth_Ref[[fam]]+depth_Alt[[fam]],depth_Ref[[fam]])
-      Kab[[fam]] <- bcoef_mat[[fam]]*(1/2)^(depth_Ref[[fam]]+depth_Alt[[fam]])
-    }
-    
     ## If we want to estimate sex-specific r.f.'s
     if(sexSpec){
       
@@ -202,21 +195,23 @@ rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
       else if(length(init_r) != sum(npar)) 
         para <- logit2(rep(0.1,sum(npar)))
       else
-        para <- init_r
+        para <- logit2(init_r)
       # sequencing error
       if(length(epsilon) != 1 & !is.null(epsilon))
         para <- c(para,logit(0.001))
       else if(!is.null(epsilon))
         para <- c(para,logit(epsilon))
-    
-      ## Are we estimating the error parameters?
-      seqErr=!is.null(epsilon)
-      
+      # Allele sampling parameter
+      if(length(alpha) != 1 & !is.null(alpha))
+        para <- c(para, log(10))
+      else if(!is.null(alpha))
+        para <- c(para, log(alpha))
+      seqErr=!is.null(epsilon); samPara=!is.null(alpha)
       ## Find MLE
       optim.MLE <- optim(para,ll_fs_ss_mp_scaled_err,method="BFGS",control=optim.arg,
-                         depth_Ref=depth_Ref,depth_Alt=depth_Alt,bcoef_mat=bcoef_mat,Kab=Kab,
+                         depth_Ref=depth_Ref,depth_Alt=depth_Alt,
                          nInd=nInd,nSnps=nSnps,OPGP=OPGP,ps=ps,ms=ms,npar=npar,noFam=noFam,
-                         seqErr=!is.null(epsilon))
+                         seqErr=seqErr, samPara=samPara)
     }
     else{
       # Determine the initial values
@@ -225,21 +220,26 @@ rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
       else if(length(init_r) != nSnps-1) 
         para <- logit2(rep(0.1,nSnps-1))
       else
-        para <- init_r
+        para <- logit2(init_r)
       # sequencing error
       if(length(epsilon) != 1 & !is.null(epsilon))
         para <- c(para,logit(0.001))
       else if(!is.null(epsilon))
         para <- c(para,logit(epsilon))
+      # Allele sampling parameter
+      if(length(alpha) != 1 & !is.null(alpha))
+        para <- c(para, log(10))
+      else if(!is.null(alpha))
+        para <- c(para, log(alpha))
       
       ## Are we estimating the error parameters?
-      seqErr=!is.null(epsilon)
+      seqErr=!is.null(epsilon); samPara=!is.null(alpha)
       
       ## Find MLE
       optim.MLE <- optim(para,ll_fs_mp_scaled_err,method="BFGS",control=optim.arg,
-                         depth_Ref=depth_Ref,depth_Alt=depth_Alt,bcoef_mat=bcoef_mat,Kab=Kab,
+                         depth_Ref=depth_Ref,depth_Alt=depth_Alt,
                          nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,
-                         seqErr=seqErr)
+                         seqErr=seqErr, samPara=samPara)
     }
     # Print out the output from the optim procedure (if specified)
     if(trace){
@@ -252,14 +252,18 @@ rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
     if(sexSpec)
       return(list(rf_p=inv.logit2(optim.MLE$par[1:npar[1]]),rf_m=inv.logit2(optim.MLE$par[npar[1]+1:npar[2]]),
                   epsilon=ifelse(seqErr,inv.logit(optim.MLE$par[sum(npar)+1]),0),
+                  alpha=ifelse(samPara,exp(optim.MLE$par[sum(npar)+1+ifelse(seqErr,1,0)]),NA),
                   loglik=optim.MLE$value))
     else
       return(list(rf=inv.logit2(optim.MLE$par[1:(nSnps-1)]), 
                   epsilon=ifelse(seqErr,inv.logit(optim.MLE$par[nSnps]),0),
+                  alpha=ifelse(samPara,exp(optim.MLE$par[nSnps+ifelse(seqErr,1,0)]),NA),
                   loglik=optim.MLE$value))
   }
   else{ # EM algorithm approach
     ## Set up the parameter values
+    if(!is.null(alpha))
+      stop("EM implementation not available for non-random sampling of alleles.")
     temp.arg <- list(...)
     if(!is.null(temp.arg$maxit) && is.numeric(temp.arg$maxit) && length(temp.arg$maxit) == 1) 
       EM.arg = c(temp.arg$maxit)
@@ -319,7 +323,7 @@ rf_est_FS <- function(init_r=0.01, epsilon=0.001, depth_Ref, depth_Alt, OPGP,
 
 ## recombination estimates for case where the phase is unkonwn.
 ## The r.f.'s are sex-specific and constrained to the range [0,1]
-rf_est_FS_UP <- function(depth_Ref, depth_Alt, config, epsilon, method="EM", trace=F, ...){
+rf_est_FS_UP <- function(depth_Ref, depth_Alt, config, epsilon, method="optim", trace=F, ...){
   
   ## Check imputs
   if( any( depth_Ref<0 | !is.finite(depth_Ref)) || any(!(depth_Ref == round(depth_Ref))))
@@ -446,6 +450,5 @@ rf_est_FS_UP <- function(depth_Ref, depth_Alt, config, epsilon, method="EM", tra
                 loglik=EMout[[3]]))
   }
 }
-
 
 

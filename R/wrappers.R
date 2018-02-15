@@ -24,18 +24,31 @@
 
 #' @useDynLib GUSMap
 ## r.f.'s are equal
-ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr){
+ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,OPGP,nInd,nSnps,noFam,seqErr,samPara){
   ## untransform the parameters
   r <- inv.logit2(para[1:(nSnps-1)])
   if(seqErr)
     epsilon = inv.logit(para[nSnps])
   else
     epsilon = 0
+  if(samPara){
+    if(epsilon)
+      alpha = exp(para[nSnps+1])
+    else
+      alpha = exp(para[nSnps])
+  }
+      
   ## define likelihood
   llval = 0
   # define the density values for the emission probs
-  Kaa <- Kbb <- vector(mode = "list", length=noFam)
+  bcoef_mat <- Kab <- Kaa <- Kbb <- vector(mode = "list", length=noFam)
   for(fam in 1:noFam){
+    bcoef_mat[[fam]] <- choose(depth_Ref[[fam]]+depth_Alt[[fam]],depth_Ref[[fam]])
+    if(samPara)
+      Kab[[fam]] <- matrix(vcompAB(as.vector(depth_Ref[[fam]]+depth_Alt[[fam]]),as.vector(depth_Ref[[fam]])
+                                   ,alpha,epsilon), nrow=nrow(depth_Ref[[fam]]), ncol=ncol(depth_Ref[[fam]]))
+    else
+      Kab[[fam]] <- bcoef_mat[[fam]]*(1/2)^(depth_Ref[[fam]]+depth_Alt[[fam]])
     Kaa[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Ref[[fam]]*epsilon^depth_Alt[[fam]]
     Kbb[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Alt[[fam]]*epsilon^depth_Ref[[fam]]
   }
@@ -45,7 +58,7 @@ ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd
 }
 
 ## r.f.'s are sex-specific
-ll_fs_ss_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,ps,ms,npar,noFam,seqErr){
+ll_fs_ss_mp_scaled_err <- function(para,depth_Ref,depth_Alt,OPGP,nInd,nSnps,ps,ms,npar,noFam,seqErr,samPara){
   r <- matrix(0,ncol=2,nrow=nSnps-1)
   r[ps,1] <- inv.logit2(para[1:npar[1]])
   r[ms,2] <- inv.logit2(para[npar[1]+1:npar[2]])
@@ -53,11 +66,24 @@ ll_fs_ss_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,n
     epsilon = inv.logit(para[sum(npar)+1])
   else
     epsilon = 0
+  if(samPara){
+    if(epsilon)
+      alpha = exp(para[nSnps+1])
+    else
+      alpha = exp(para[nSnps])
+  }
+  
   ## define likelihood
   llval = 0
   # define the density values for the emission probs
-  Kaa <- Kbb <- vector(mode = "list", length=noFam)
+  bcoef_mat <- Kab <- Kaa <- Kbb <- vector(mode = "list", length=noFam)
   for(fam in 1:noFam){
+    bcoef_mat[[fam]] <- choose(depth_Ref[[fam]]+depth_Alt[[fam]],depth_Ref[[fam]])
+    if(samPara)
+      Kab[[fam]] <- matrix(vcompAB(as.vector(depth_Ref[[fam]]+depth_Alt[[fam]]),as.vector(depth_Ref[[fam]])
+                                   ,alpha,epsilon), nrow=nrow(depth_Ref[[fam]]), ncol=ncol(depth_Ref[[fam]]))
+    else
+      Kab[[fam]] <- bcoef_mat[[fam]]*(1/2)^(depth_Ref[[fam]]+depth_Alt[[fam]])
     Kaa[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Ref[[fam]]*epsilon^depth_Alt[[fam]]
     Kbb[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Alt[[fam]]*epsilon^depth_Ref[[fam]]
   }
@@ -82,3 +108,13 @@ ll_fs_up_ss_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,config
   Kbb <- bcoef_mat*(1-epsilon)^depth_Alt*epsilon^depth_Ref
   .Call("ll_fs_up_ss_scaled_err_c",r,Kaa,Kab,Kbb,config,nInd,nSnps)
 }
+
+compAB <- function(d,a,alpha,ep){
+  a1 = rep(0:a,d-a+1)
+  a0 = as.vector(sapply(0:(d-a),rep,times=a+1))
+  return(sum(exp(lchoose(d-a,a0) + lchoose(a,a1) + (d-a+a1-a0)*log(1-ep) + (a-a1+a0)*log(ep) + 
+                   lchoose(d,a) + lbeta(a1+a0+alpha,d-a1-a0+alpha) - lbeta(alpha,alpha))))
+}
+
+vcompAB <- Vectorize(compAB, vectorize.args = c("d","a"))
+

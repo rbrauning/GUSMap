@@ -131,7 +131,7 @@
 #' 
 #' @export simFS
 
-simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, config, nInd, meanDepth, thres=NULL, NoDS=1,
+simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, alpha=NULL, config, nInd, meanDepth, thres=NULL, NoDS=1,
                   formats=list(gusmap=F,onemap=F,lepmap=F,joinmap=F,crimap=F), rd_dist="NegBinom",
                   filename="sim", direct="./", seed1=1, seed2=1){
   
@@ -141,6 +141,8 @@ simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, config, nInd, meanDepth, thr
     stop("Recombination factions are required to be a numeric number between 0 and 0.5")
   if( !is.numeric(epsilon) || length(epsilon) != 1 || epsilon < 0 || epsilon > 1 )
     stop("Sequencing error parameter is not single numeric number between 0 and 1")
+  if( (!is.null(alpha) & !is.numeric(alpha)) || (!is.null(alpha) & (length(alpha) != 1 || alpha < 1e-10 || alpha > 1e10)) )
+    stop("Allele sampling parameter is not single finite numeric number between 0 and Inf")
   if(!is.numeric(nInd) || nInd < 1 || nInd != round(nInd) || !is.finite(nInd) )
     stop("Number of individuals or number of SNPs are not a positive integer")
   if( !is.numeric(config) || !is.vector(config) || any(!(config == round(config))) || any(config < 1) || any(config > 9) )
@@ -218,7 +220,12 @@ simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, config, nInd, meanDepth, thr
     else   
       depth[which(!is.na(geno))] <- rpois(sum(!is.na(geno)),meanDepth)
     # 2: simulate sequencing genotypes (with sequencing error rate of epsilon)
-    aCounts <- matrix(rbinom(nInd*nSnps,depth,geno/2),ncol=nSnps)
+    if(is.null(alpha))
+      aCounts <- matrix(rbinom(nInd*nSnps,depth,geno/2),ncol=nSnps)
+    else{
+      alleleCounts <- matrix(rbb(nInd*nSnps, depth, alpha, alpha),ncol=nSnps)
+      aCounts <- alleleCounts*(geno > 0) + (depth-alleleCounts)*(geno == 2)
+    }
     bCounts <- depth - aCounts
     aCountsFinal <- matrix(rbinom(nInd*nSnps,aCounts,prob=1-epsilon),ncol=nSnps) + matrix(rbinom(nInd*nSnps,bCounts,prob=epsilon),ncol=nSnps)
     SEQgeno <- aCountsFinal/depth
@@ -457,4 +464,9 @@ genoToOtherFormats <- function(genon,depth_Ref,depth_Alt,config,formats,filename
 ## Function for trimming away white spaces and forward slashes for input path and file names
 trim_fn <- function(x) return( gsub("^\\/|\\/$", "", trimws(x)) )
 
-
+#### Function taken from the TailRank package
+rbb <- function (n, N, u, v) 
+{
+  p <- rbeta(n, u, v)
+  rbinom(n, N, p)
+}
