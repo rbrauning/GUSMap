@@ -36,6 +36,8 @@ ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,OPGP,nInd,nSnps,noFam,s
       alpha = exp(para[nSnps+1])
     else
       alpha = exp(para[nSnps])
+    if(alpha > 1e9)
+      alpha = 1e9
   }
       
   ## define likelihood
@@ -71,6 +73,8 @@ ll_fs_ss_mp_scaled_err <- function(para,depth_Ref,depth_Alt,OPGP,nInd,nSnps,ps,m
       alpha = exp(para[nSnps+1])
     else
       alpha = exp(para[nSnps])
+    if(alpha > 1e9)
+      alpha = 1e9
   }
   
   ## define likelihood

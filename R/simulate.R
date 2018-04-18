@@ -240,7 +240,7 @@ simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, alpha=NULL, config, nInd, me
   ## Write simulation parameters to a file
   if(writeFiles)
     dput(list(nInd=nInd,nSnps=nSnps,NoDS=NoDS,rVec_f=unlist(lapply(rVec_f,function(x) x[1])),
-              rVec_m=unlist(lapply(rVec_m,function(x) x[1])), epsilon=epsilon,
+              rVec_m=unlist(lapply(rVec_m,function(x) x[1])), epsilon=epsilon, alpha=alpha,
               config=config, OPGP=OPGP, meanDepth=meanDepth, rd_dist=rd_dist, seed1=seed1, seed2=seed2),
          paste0(trim_fn(paste0(direct,"/",filename)),"_info.txt"))
   ## return simulated data and parameter values ued to generate the data
@@ -252,7 +252,8 @@ simFS <- function(rVec_f, rVec_m=rVec_f, epsilon=0, alpha=NULL, config, nInd, me
                           rVec_f=unlist(lapply(rVec_f,function(x) x[1])),
                           rVec_m=unlist(lapply(rVec_m,function(x) x[1])),
                           nInd=nInd,nSnps=nSnps,config=config,OPGP=OPGP,
-                          meanDepth=meanDepth,rd_dist=rd_dist, epsilon=epsilon)))
+                          meanDepth=meanDepth,rd_dist=rd_dist,
+                          epsilon=epsilon, alpha=alpha)))
 }
 
 ### Function for writing simulated sequencing data to various software formats
