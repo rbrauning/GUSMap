@@ -25,16 +25,6 @@
 #include "probFun.h"
 
 
-// Function for returning a specified enetry of the transition matrix for a given recombination fraction value
-double Tmat(int s1, int s2, double rval){
-  int sSum = s1 + s2*4;
-  if((sSum == 0)|(sSum == 5)|(sSum == 10)|(sSum == 15))
-    return (1-rval)*(1-rval);
-  else if((sSum == 3)|(sSum == 6)|(sSum == 9)|(sSum == 12))
-    return rval*rval;
-  else
-    return (1-rval)*rval;
-}
 
 //////////// likelihood functions for multipoint likelihood in full sib-families using GBS data /////////////////////
 // Input variables for likelihoods

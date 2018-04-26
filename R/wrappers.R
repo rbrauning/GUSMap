@@ -82,3 +82,26 @@ ll_fs_up_ss_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,config
   Kbb <- bcoef_mat*(1-epsilon)^depth_Alt*epsilon^depth_Ref
   .Call("ll_fs_up_ss_scaled_err_c",r,Kaa,Kab,Kbb,config,nInd,nSnps)
 }
+
+#### Wrappers for score function
+score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam){
+  ## untransform the parameters
+  r <- inv.logit2(para[1:(nSnps-1)])
+  epsilon = inv.logit(para[nSnps])
+  ## define likelihood
+  score = numeric(nSnps)
+  # define the density values for the emission probs
+  Kaa <- Kbb <- vector(mode = "list", length=noFam)
+  for(fam in 1:noFam){
+    Kaa[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Ref[[fam]]*epsilon^depth_Alt[[fam]]
+    Kbb[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Alt[[fam]]*epsilon^depth_Ref[[fam]]
+  }
+  for(fam in 1:noFam)
+    score = score + .Call("score_fs_scaled_err_c",r,para[nSnps],depth_Ref[[fam]],depth_Alt[[fam]],
+                          Kaa[[fam]],Kab[[fam]],Kbb[[fam]],OPGP[[fam]],nInd[[fam]],nSnps)
+  return(score)
+}
+
+  
+  
+  
