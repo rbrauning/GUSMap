@@ -1,7 +1,8 @@
 setwd("GUSMap/src")
+dyn.unload("score.so")
 dyn.load("score.so")
 library(GUSMap)
-data <- simFS(rVec_f = 0.01,epsilon = 0.01,config = c(1,2,1,4,1),meanDepth = 5,nInd = 10,NoDS = 1,seed2 = 79847)
+data <- simFS(rVec_f = 0.01,epsilon = 0.01,config = c(1,2,1,4,1),meanDepth = 5,nInd = 100,NoDS = 1,seed2 = 19584)
 
 depth_Ref <- list(data$depth_Ref)
 depth_Alt <- list(data$depth_Alt)
@@ -16,10 +17,10 @@ for(fam in 1:noFam){
   Kab[[fam]] <- bcoef_mat[[fam]]*(1/2)^(depth_Ref[[fam]]+depth_Alt[[fam]])
 }
 
-tt <- rf_est_FS(depth_Ref = depth_Ref,depth_Alt = depth_Alt,OPGP=OPGP, method="optim")
+tt <- rf_est_FS(depth_Ref = depth_Ref,depth_Alt = depth_Alt,OPGP=OPGP, method="optim",reltol=1e-25)
 
 
-score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam){
+score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr=T){
   ## untransform the parameters
   r <- GUSMap:::inv.logit2(para[1:(nSnps-1)])
   epsilon = GUSMap:::inv.logit(para[nSnps])
@@ -32,8 +33,9 @@ score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,n
     Kbb[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Alt[[fam]]*epsilon^depth_Ref[[fam]]
   }
   for(fam in 1:noFam)
-    score = score + .Call("score_fs_scaled_err_c",r,para[nSnps],depth_Ref[[fam]],depth_Alt[[fam]],
-                          Kaa[[fam]],Kab[[fam]],Kbb[[fam]],OPGP[[fam]],nInd[[fam]],nSnps)
+    score = score + .Call("score_fs_scaled_err_c",r,epsilon,
+                          depth_Ref[[fam]],depth_Alt[[fam]], Kaa[[fam]],Kab[[fam]],Kbb[[fam]],
+                          OPGP[[fam]],nInd[[fam]],nSnps)
   return(score)
 }
 
@@ -68,7 +70,7 @@ optim.MLE <- optim(para,ll_fs_mp_scaled_err,method="BFGS",control=optim.arg,
 
 
 optim.MLE <- optim(c(GUSMap:::logit2(rep(0.01,4)),GUSMap:::logit(0.01)),
-                   fn=ll_fs_mp_scaled_err,gr=score_fs_mp_scaled_err,
+                   fn=GUSMap:::ll_fs_mp_scaled_err,gr=score_fs_mp_scaled_err,
                    method="BFGS",
                    depth_Ref=depth_Ref,depth_Alt=depth_Alt,bcoef_mat=bcoef_mat,Kab=Kab,
                    nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,seqErr=T)
