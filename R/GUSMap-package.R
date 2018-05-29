@@ -23,7 +23,7 @@
 #' sequencing methods (see Bilton et al. (2017)).
 #' 
 #' \tabular{ll}{ Package: \tab GUSMap\cr Type: \tab Package\cr Version: \tab
-#' 0.1.1\cr Date: \tab 2018-06-02\cr License: \tab GPL 3\cr }
+#' 0.1.2\cr Date: \tab 2018-29-05\cr License: \tab GPL 3\cr }
 #' 
 #' @name GUSMap-package
 #' @aliases GUSMap

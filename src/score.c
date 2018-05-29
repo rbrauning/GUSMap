@@ -24,8 +24,12 @@
 #include <math.h>
 #include "probFun.h"
 
-// TO delete
 
+/*
+// To Delete
+
+// Function for computing binomial coefficients
+// taken  from this website "https://rosettacode.org/wiki/Evaluate_binomial_coefficients#C"
 static unsigned long gcd_ui(unsigned long x, unsigned long y) {
   unsigned long t;
   if (y < x) { t = x; x = y; y = t; }
@@ -206,27 +210,22 @@ double Tmat_ss(int s1, int s2, double r_f, double r_m){
     return r_f*(1-r_m);
 }
 
-/////
 
+////////////////////
+ */
 
 // Derivative function for rf's
 double der_rf(int s1, int s2, double rval){
   //double er;
   int sSum = s1 + s2*4;
   if((sSum == 0)|(sSum == 5)|(sSum == 10)|(sSum == 15)){
-    //er = exp(rval);
-    //return er*(2+er)/(2*pow(1+er,3));
-    return -2*rval*powl(1-rval,2);
+    return -2*rval*(1-rval)*(1-2*rval);
   }
   else if((sSum == 3)|(sSum == 6)|(sSum == 9)|(sSum == 12)){
-    //er = exp(-rval);
-    //return er/(2*pow(1+er,3));
-    return 2*powl(rval,2)*(1-rval);
+    return 2*rval*rval*(1-2*rval);
   }
   else{
-    //er = exp(-rval);
-    //return pow(er,2)/(2*pow(1+er,3));
-    return rval*(1-rval)*(1-2*rval);
+    return rval*(1-2*rval)*(1-2*rval);
   }
 }
 
@@ -235,29 +234,23 @@ double der_rf(int s1, int s2, double rval){
 double partial_der_epsilon(int geno, double ep, int a, int d){
   switch(geno){
   case 1:
-    return binomial(a,d-a) * powl(ep,a) * powl(1-ep,d-a) * (a-d*ep);
-/*    if(a==0)
-      return -d*pow(1+exp(-epsilon),-d-1)*exp(-epsilon);
-    if(a==d) 
-      return -a*pow(1+exp(epsilon),-a-1)*exp(epsilon);
-    else{
-      double e1 = 1+exp(epsilon);
-      double e2 = 1+exp(-epsilon);
-      return binomial(a,d-a)*(pow(e1,-a-1)*pow(e2,-d+a-1)*(-a*e1+(d-a)*e2));
-    } */
+    //if(a==0)
+    //  return (1-ep) * powl(ep,d) * d;
+    //if(a==d) 
+    //  return -1 * ep * powl(1-ep,d) * d;
+    //else{
+      return binomial(a,d-a) *powl(ep,d-a) * powl(1-ep,a) * ((d-a)-d*ep);
+    //} 
   case 2:
     return 0;
   case 3:
-    return binomial(a,d-a) * powl(ep,d-a) * powl(1-ep,a) * ((d-a)-d*ep);
-/*    if(a==0)
-      return -d*pow(1+exp(epsilon),-d-1)*exp(epsilon);
-    if(a==d) 
-      return -a*pow(1+exp(-epsilon),-a-1)*exp(-epsilon);
-    else{
-      double e1 = 1+exp(epsilon);
-      double e2 = 1+exp(-epsilon);
-      return binomial(a,d-a)*(pow(e1,-d+a-1)*pow(e2,-a-1)*(-(d-a)*e1+a*e2));
-    } */
+    //if(a==0)
+    //  return -1 * ep * powl(1-ep,d) * d;
+    //if(a==d) 
+    //  return (1-ep) * powl(ep,d) * d;
+   // else{
+      return binomial(a,d-a) * powl(ep,a) * powl(1-ep,d-a) * (a-d*ep);
+   // }
   }
   return -1;
 }
@@ -345,10 +338,10 @@ double der_epsilon(int OPGP, double epsilon, int a, int b, int elem){
   case 16:
     return partial_der_epsilon(3, epsilon, a, d);
   } // end of Switch
-  return -1;
+  return -999;
 }
 
-
+// rf's are equal and error parameter
 SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps){
   // Initialize variables
   int s1, s2, ind, snp, snp_der, nInd_c, nSnps_c, *pOPGP, *pdepth_Ref, *pdepth_Alt;
@@ -372,27 +365,27 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt,
   pscore = REAL(score);
   //SEXP pout = PROTECT(allocVector(VECSXP, 3));
   double llval = 0, phi[4][nSnps_c], phi_prev[4][nSnps_c], score_c[nSnps_c];
+  for(snp = 0; snp < nSnps_c; snp++){
+    score_c[snp] = 0;
+  }
   
   // Now compute the likelihood and score function
   for(ind = 0; ind < nInd_c; ind++){
     // Compute forward probabilities at snp 1
     sum = 0;
     for(s1 = 0; s1 < 4; s1++){
-      //Rprintf("Q value :%.6f at snp %i in ind %i\n", Qentry(pOPGP[0], pKaa[ind], pKab[ind], pKbb[ind], s1+1, delta_c), 0, ind);
       alphaDot[s1] = 0.25 * Qentry(pOPGP[0], pKaa[ind], pKab[ind], pKbb[ind], s1+1);
       sum = sum + alphaDot[s1];
+      alphaTilde[s1] = alphaDot[s1];
       // Compute the derivative for epsilon
-      //Rprintf("phi at epsilon :%.6f fpr a = %i and b = %i\n", der_epsilon(pOPGP[0], epsilon_c, pdepth_Ref[ind], pdepth_Alt[ind], s1+1), pdepth_Ref[ind], pdepth_Alt[ind]);
       phi_prev[s1][nSnps_c-1] = 0.25 * der_epsilon(pOPGP[0], epsilon_c, pdepth_Ref[ind], pdepth_Alt[ind], s1+1);
     }
     //Scale forward probabilities
-    for(s1 = 0; s1 < 4; s1++){
-      alphaTilde[s1] = alphaDot[s1]; ///sum;
-    }
+    //for(s1 = 0; s1 < 4; s1++){
+    //  alphaTilde[s1] = alphaDot[s1]; ///sum;
+    //}
 
     // add contribution to likelihood
-    //w_logcumsum = log(sum);
-    //llval = llval + log(sum);
     w_prev = sum;
 
     // iterate over the remaining SNPs
@@ -404,15 +397,11 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt,
         for(s1 = 0; s1 < 4; s1++){
           sum = sum + Tmat(s1, s2, pr[snp-1]) * alphaTilde[s1];
         }
-        //Rprintf("Q value :%.6f at snp %i in ind %i\n", Qentry(pOPGP[snp], pKaa[ind + nInd_c*snp], pKab[ind + nInd_c*snp], pKbb[ind + nInd_c*snp], s2+1, delta_c), snp, ind);
         delta = Qentry(pOPGP[snp], pKaa[ind + nInd_c*snp], pKab[ind + nInd_c*snp], pKbb[ind + nInd_c*snp], s2+1);
         alphaDot[s2] = sum * delta/w_prev;
         // add contribution to new weight
         w_new = w_new + alphaDot[s2];
-      }
-      //Compute the derivatives
-      for(s2 = 0; s2 < 4; s2++){
-        delta = Qentry(pOPGP[snp], pKaa[ind + nInd_c*snp], pKab[ind + nInd_c*snp], pKbb[ind + nInd_c*snp], s2+1);
+        // Compute the derivatives
         //rf's
         sum_der = 0;
         for(s1 = 0; s1 < 4; s1++){
@@ -430,20 +419,18 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt,
         sum_der = 0;
         for(s1 = 0; s1 < 4; s1++){  
           sum_der = sum_der + ((phi_prev[s1][nSnps_c-1] * delta + alphaTilde[s1] * 
-            der_epsilon(pOPGP[snp], epsilon_c, pdepth_Ref[ind + nInd_c*snp], pdepth_Alt[ind + nInd_c*snp], s2+1))) * Tmat(s1, s2, pr[snp-1]);
+            der_epsilon(pOPGP[snp], epsilon_c, pdepth_Ref[ind + nInd_c*snp], pdepth_Alt[ind + nInd_c*snp], s2+1)) * Tmat(s1, s2, pr[snp-1]));
         }
-        //Rprintf("phi at epsilon :%.6f foe weight of %.6f\n", sum_der, 1/w_new);
         phi[s2][nSnps_c-1] = sum_der/w_prev;
       }
       // Add contribution to the likelihood
       llval = llval + log(w_prev);
-      //Rprintf("Likelihood value: %f\n", llval);
 
       // Scale the forward probability vector
       for(s2 = 0; s2 < 4; s2++){
         alphaTilde[s2] = alphaDot[s2];
         // update the derivative vectors
-        for(snp_der = snp; snp_der < nSnps_c; snp_der++){
+        for(snp_der = 0; snp_der < nSnps_c; snp_der++){
           phi_prev[s2][snp_der] = phi[s2][snp_der];
         }
       }
@@ -452,26 +439,134 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt,
     llval = llval + log(w_prev);
     //Rprintf("Likelihood value: %f\n", llval);
     // add contributions to the score vector
-    for(snp_der = 0; snp_der < nSnps_c; snp_der++){
+    for(snp_der = 0; snp_der < snp-1; snp_der++){
       sum_der = 0;
       for(s2 = 0; s2 < 4; s2++)
         sum_der = sum_der + phi[s2][snp_der]/w_prev;
-      //Rprintf("der: %f - ", sum_der);
-      sum_der += score_c[snp_der];
+      sum_der = sum_der + score_c[snp_der];
       score_c[snp_der] = sum_der;
     }
-    //Rprintf("\n");
+    for(snp_der = nSnps_c-1; snp_der < nSnps_c; snp_der++){
+      sum_der = 0;
+      for(s2 = 0; s2 < 4; s2++)
+        sum_der = sum_der + phi[s2][snp_der]/w_prev;
+      sum_der = sum_der + score_c[snp_der];
+      score_c[snp_der] = sum_der;
+    }
   }
   // Compute the score for each parameter
-  for(snp_der=0; snp_der<nSnps_c; snp_der++){
+  for(snp_der=0; snp_der < nSnps_c; snp_der++){
     pscore[snp_der] = score_c[snp_der];
   }
-
+  
   // Clean up and return likelihood value
-  Rprintf("Likelihood value: %f\n", llval);
+  //Rprintf("Likelihood value: %f\n", llval);
   UNPROTECT(1);
   return score;
 }
 
-
+// rf's are equal and no error parameter
+SEXP score_fs_scaled_c(SEXP r, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps){
+  // Initialize variables
+  int s1, s2, ind, snp, snp_der, nInd_c, nSnps_c, *pOPGP;
+  double *pscore, *pr, *pKaa, *pKab, *pKbb, delta;
+  double alphaTilde[4], alphaDot[4], sum, sum_der, w_new, w_prev;
+  // Load R input variables into C
+  nInd_c = INTEGER(nInd)[0];
+  nSnps_c = INTEGER(nSnps)[0];
+  // Define the pointers to the other input R variables
+  pOPGP = INTEGER(OPGP);
+  pKaa = REAL(Kaa);
+  pKab = REAL(Kab);
+  pKbb = REAL(Kbb);
+  pr = REAL(r);
+  // Define the output variable
+  SEXP score;
+  PROTECT(score = allocVector(REALSXP, nSnps_c-1));
+  pscore = REAL(score);
+  //SEXP pout = PROTECT(allocVector(VECSXP, 3));
+  double llval = 0, phi[4][nSnps_c-1], phi_prev[4][nSnps_c-1], score_c[nSnps_c-1];
+  for(snp = 0; snp < nSnps_c-1; snp++){
+    score_c[snp] = 0;
+  }
+  
+  // Now compute the likelihood and score function
+  for(ind = 0; ind < nInd_c; ind++){
+    // Compute forward probabilities at snp 1
+    sum = 0;
+    for(s1 = 0; s1 < 4; s1++){
+      alphaDot[s1] = 0.25 * Qentry(pOPGP[0], pKaa[ind], pKab[ind], pKbb[ind], s1+1);
+      sum = sum + alphaDot[s1];
+      alphaTilde[s1] = alphaDot[s1];
+    }
+    //Scale forward probabilities
+    //for(s1 = 0; s1 < 4; s1++){
+    //  alphaTilde[s1] = alphaDot[s1]; ///sum;
+    //}
+    
+    // add contribution to likelihood
+    w_prev = sum;
+    
+    // iterate over the remaining SNPs
+    for(snp = 1; snp < nSnps_c; snp++){
+      // compute the next forward probabilities for snp \ell
+      w_new = 0;
+      for(s2 = 0; s2 < 4; s2++){
+        sum = 0;
+        for(s1 = 0; s1 < 4; s1++){
+          sum = sum + Tmat(s1, s2, pr[snp-1]) * alphaTilde[s1];
+        }
+        delta = Qentry(pOPGP[snp], pKaa[ind + nInd_c*snp], pKab[ind + nInd_c*snp], pKbb[ind + nInd_c*snp], s2+1);
+        alphaDot[s2] = sum * delta/w_prev;
+        // add contribution to new weight
+        w_new = w_new + alphaDot[s2];
+        // Compute the derivatives
+        //rf's
+        sum_der = 0;
+        for(s1 = 0; s1 < 4; s1++){
+          sum_der = sum_der + der_rf(s1, s2, pr[snp-1]) * alphaTilde[s1];
+        }
+        phi[s2][snp-1] = sum_der * delta * 1/w_prev;
+        for(snp_der = 0; snp_der < snp-1; snp_der++){
+          sum_der = 0;
+          for(s1 = 0; s1 < 4; s1++){
+            sum_der = sum_der + phi_prev[s1][snp_der] * Tmat(s1, s2, pr[snp-1]);
+          }
+          phi[s2][snp_der] = sum_der * delta * 1/w_prev;
+        }
+      }
+      // Add contribution to the likelihood
+      llval = llval + log(w_prev);
+      
+      // Scale the forward probability vector
+      for(s2 = 0; s2 < 4; s2++){
+        alphaTilde[s2] = alphaDot[s2];
+        // update the derivative vectors
+        for(snp_der = 0; snp_der < nSnps_c-1; snp_der++){
+          phi_prev[s2][snp_der] = phi[s2][snp_der];
+        }
+      }
+      w_prev = w_new;
+    }
+    llval = llval + log(w_prev);
+    //Rprintf("Likelihood value: %f\n", llval);
+    // add contributions to the score vector
+    for(snp_der = 0; snp_der < snp-1; snp_der++){
+      sum_der = 0;
+      for(s2 = 0; s2 < 4; s2++)
+        sum_der = sum_der + phi[s2][snp_der]/w_prev;
+      sum_der = sum_der + score_c[snp_der];
+      score_c[snp_der] = sum_der;
+    }
+  }
+  // Compute the score for each parameter
+  for(snp_der=0; snp_der < nSnps_c-1; snp_der++){
+    pscore[snp_der] = score_c[snp_der];
+  }
+  
+  // Clean up and return likelihood value
+  //Rprintf("Likelihood value: %f\n", llval);
+  UNPROTECT(1);
+  return score;
+}
 

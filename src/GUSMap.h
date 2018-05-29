@@ -29,6 +29,8 @@
 SEXP ll_fs_scaled_err_c(SEXP r, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps);
 SEXP ll_fs_ss_scaled_err_c(SEXP r, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps);
 SEXP ll_fs_up_ss_scaled_err_c(SEXP r, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP config, SEXP nInd, SEXP nSnps);
+SEXP score_fs_scaled_c(SEXP r, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps);
+SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP depth_Ref, SEXP depth_Alt, SEXP Kaa, SEXP Kab, SEXP Kbb, SEXP OPGP, SEXP nInd, SEXP nSnps);
 SEXP EM_HMM(SEXP r, SEXP ep, SEXP depth_Ref, SEXP depth_Alt, SEXP OPGP, SEXP noFam, SEXP nInd, SEXP nSnps, SEXP sexSpec, SEXP seqError, SEXP para, SEXP ss_rf);
 SEXP EM_HMM_UP(SEXP r, SEXP ep, SEXP depth_Ref, SEXP depth_Alt, SEXP config, SEXP noFam, SEXP nInd, SEXP nSnps, SEXP seqError, SEXP para, SEXP ss_rf);
 

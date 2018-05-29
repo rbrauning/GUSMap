@@ -24,13 +24,13 @@
 
 #' @useDynLib GUSMap
 ## r.f.'s are equal
-ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr){
+ll_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr,extra=NULL){
   ## untransform the parameters
   r <- inv.logit2(para[1:(nSnps-1)])
   if(seqErr)
     epsilon = inv.logit(para[nSnps])
   else
-    epsilon = 0
+    epsilon = extra
   ## define likelihood
   llval = 0
   # define the density values for the emission probs
@@ -51,8 +51,6 @@ ll_fs_ss_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,n
   r[ms,2] <- inv.logit2(para[npar[1]+1:npar[2]])
   if(seqErr)
     epsilon = inv.logit(para[sum(npar)+1])
-  else
-    epsilon = 0
   ## define likelihood
   llval = 0
   # define the density values for the emission probs
@@ -83,11 +81,16 @@ ll_fs_up_ss_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,config
   .Call("ll_fs_up_ss_scaled_err_c",r,Kaa,Kab,Kbb,config,nInd,nSnps)
 }
 
-#### Wrappers for score function
-score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam){
+
+#### Score functions written in C in the file 'score.c'
+## r.f.'s are equal
+score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr=T,extra=NULL){
   ## untransform the parameters
-  r <- inv.logit2(para[1:(nSnps-1)])
-  epsilon = inv.logit(para[nSnps])
+  r <- GUSMap:::inv.logit2(para[1:(nSnps-1)])
+  if(seqErr)
+    epsilon <- GUSMap:::inv.logit(para[nSnps])
+  else
+    epsilon = extra
   ## define likelihood
   score = numeric(nSnps)
   # define the density values for the emission probs
@@ -96,12 +99,18 @@ score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,n
     Kaa[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Ref[[fam]]*epsilon^depth_Alt[[fam]]
     Kbb[[fam]] <- bcoef_mat[[fam]]*(1-epsilon)^depth_Alt[[fam]]*epsilon^depth_Ref[[fam]]
   }
-  for(fam in 1:noFam)
-    score = score + .Call("score_fs_scaled_err_c",r,para[nSnps],depth_Ref[[fam]],depth_Alt[[fam]],
-                          Kaa[[fam]],Kab[[fam]],Kbb[[fam]],OPGP[[fam]],nInd[[fam]],nSnps)
-  return(score)
+  if(seqErr){
+    score = numeric(nSnps)
+    for(fam in 1:noFam)
+      score = score + .Call("score_fs_scaled_err_c",r,epsilon,depth_Ref[[fam]],depth_Alt[[fam]],
+                            Kaa[[fam]],Kab[[fam]],Kbb[[fam]],OPGP[[fam]],nInd[[fam]],nSnps)
+  } else{
+    score = numeric(nSnps - 1)
+    for(fam in 1:noFam)
+      score = score + .Call("score_fs_scaled_c",r,Kaa[[fam]],Kab[[fam]],Kbb[[fam]],OPGP[[fam]],nInd[[fam]],nSnps)
+  }
+  return(-score)
 }
 
-  
-  
+
   

@@ -24,12 +24,14 @@
 
 
 static const R_CallMethodDef callMethods[] = {
-  {"ll_fs_scaled_err_c",       (DL_FUNC) &ll_fs_scaled_err_c,		7},
-  {"ll_fs_ss_scaled_err_c",    (DL_FUNC) &ll_fs_ss_scaled_err_c,	7},
+  {"ll_fs_scaled_err_c",       (DL_FUNC) &ll_fs_scaled_err_c,	      7},
+  {"ll_fs_ss_scaled_err_c",    (DL_FUNC) &ll_fs_ss_scaled_err_c,    7},
   {"ll_fs_up_ss_scaled_err_c", (DL_FUNC) &ll_fs_up_ss_scaled_err_c,	7},
-  {"EM_HMM",                   (DL_FUNC) &EM_HMM,               	12},
-  {"EM_HMM_UP",                (DL_FUNC) &EM_HMM_UP,            	11},
-  {NULL,		       NULL,				        0}
+  {"score_fs_scaled_c",        (DL_FUNC) &score_fs_scaled_err_c,    7},
+  {"score_fs_scaled_err_c",    (DL_FUNC) &score_fs_scaled_err_c,    10},
+  {"EM_HMM",                   (DL_FUNC) &EM_HMM,               	  12},
+  {"EM_HMM_UP",                (DL_FUNC) &EM_HMM_UP,            	  11},
+  {NULL,		                    NULL,				                        0}
 };
 
 void R_init_GUSMap(DllInfo *info){
@@ -38,9 +40,11 @@ void R_init_GUSMap(DllInfo *info){
 
   R_useDynamicSymbols(info, TRUE);
 
-  R_RegisterCCallable("GUSMap","ll_fs_scaled_err_c", 		(DL_FUNC) &ll_fs_scaled_err_c);
-  R_RegisterCCallable("GUSMap","ll_fs_ss_scaled_err_c", 	(DL_FUNC) &ll_fs_ss_scaled_err_c);
+  R_RegisterCCallable("GUSMap","ll_fs_scaled_err_c", 		        (DL_FUNC) &ll_fs_scaled_err_c);
+  R_RegisterCCallable("GUSMap","ll_fs_ss_scaled_err_c", 	      (DL_FUNC) &ll_fs_ss_scaled_err_c);
   R_RegisterCCallable("GUSMap","ll_fs_up_ss_scaled_err_c",      (DL_FUNC) &ll_fs_up_ss_scaled_err_c);
+  R_RegisterCCallable("GUSMap","score_fs_scaled_c",             (DL_FUNC) &score_fs_scaled_c);
+  R_RegisterCCallable("GUSMap","score_fs_scaled_err_c",         (DL_FUNC) &score_fs_scaled_err_c);
   R_RegisterCCallable("GUSMap","EM_HMM",                        (DL_FUNC) &EM_HMM);
   R_RegisterCCallable("GUSMap","EM_HMM_UP",                     (DL_FUNC) &EM_HMM_UP);
 }
