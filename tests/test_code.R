@@ -71,7 +71,7 @@ score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,n
 test <- score_fs_mp_scaled_err(c(GUSMap:::logit2(tt[[1]]),GUSMap:::logit(tt[[2]])),depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam=1)
 
 system.time({optim.MLE <- optim(c(GUSMap:::logit2(rep(0.01,data$nSnps-1))),
-                   fn=GUSMap:::ll_fs_mp_scaled_err,gr=score_fs_mp_scaled_err,
+                   fn=ll_fs_mp_scaled_err,gr=score_fs_mp_scaled_err,
                    method="BFGS",
                    depth_Ref=depth_Ref,depth_Alt=depth_Alt,bcoef_mat=bcoef_mat,Kab=Kab,
                    nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,seqErr=F)})
