@@ -22,6 +22,9 @@ for(fam in 1:noFam){
 
 system.time({tt <- rf_est_FS(depth_Ref = depth_Ref,depth_Alt = depth_Alt,OPGP=OPGP, method="optim",reltol=1e-25)})
 
+hh <- hessian(function(u) GUSMap:::ll_fs_mp_scaled_err(u, depth_Ref = depth_Ref, depth_Alt = depth_Alt,
+                                                 bcoef_mat = bcoef_mat, Kab = Kab, OPGP = OPGP, nInd = nInd, nSnps = nSnps, noFam=1,seqErr = T),
+        c(GUSMap:::logit(tt$rf),GUSMap:::logit2(tt$epsilon)))
 
 score_fs_mp_scaled_err <- function(para,depth_Ref,depth_Alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam,seqErr=T){
   ## untransform the parameters
