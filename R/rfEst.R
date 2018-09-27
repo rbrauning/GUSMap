@@ -141,10 +141,10 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
         para <- init_r
       # sequencing error
       if(seqErr)
-        para <- c(para,GUSbase::logit(ep))
+        para <- c(para,GUSbase::logit(rep(ep, nSnps)))
       
       ## Find MLE
-      optim.MLE <- optim(para, fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err,
+      optim.MLE <- optim(para, fn=ll_fs_mp_scaled_err,
                          method="BFGS", control=optim.arg,
                          ref=ref,alt=alt,bcoef_mat=bcoef_mat,Kab=Kab,
                          nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,
@@ -164,7 +164,7 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
                   loglik=-optim.MLE$value))
     else
       return(list(rf=GUSbase::inv.logit2(optim.MLE$par[1:(nSnps-1)]), 
-                  ep=ifelse(seqErr,GUSbase::inv.logit(optim.MLE$par[nSnps]),0),
+                  ep=GUSbase::inv.logit(optim.MLE$par[nSnps:(2*nSnps-1)]),
                   loglik=-optim.MLE$value))
   }
   if(method=="optim_old"){

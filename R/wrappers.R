@@ -29,9 +29,9 @@ ll_fs_mp_scaled_err <- function(para,ref,alt,bcoef_mat,Kab,OPGP,nInd,nSnps,noFam
   ## untransform the parameters
   r <- GUSbase:::inv.logit2(para[1:(nSnps-1)])
   if(seqErr)
-    ep = GUSbase:::inv.logit(para[nSnps])
+    ep = GUSbase:::inv.logit(para[nSnps:(2*nSnps-1)])
   else
-    ep = extra
+    ep = rep(extra, length.out = nSnps)
   ## define likelihood
   llval = 0
   for(fam in 1:noFam)
